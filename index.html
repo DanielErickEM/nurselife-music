@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#17131d" />
+    <title>NurseLife Music | Catálogo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="#inicio">NURSELIFE <span>MUSIC</span></a>
+        <div id="session-actions"><button id="logout-button" class="text-button" hidden>Cerrar sesión</button></div>
+      </header>
+
+      <section id="login-view" class="auth-card">
+        <p class="eyebrow">ADMINISTRACIÓN</p>
+        <h1>Publica tu música sin pasos manuales.</h1>
+        <p>Sube portada y MP3 una sola vez. El panel los guarda en GitHub y crea la canción en Firestore.</p>
+        <form id="login-form">
+          <label>Correo administrador<input id="email" type="email" autocomplete="email" required /></label>
+          <label>Contraseña<input id="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary" type="submit">Ingresar al catálogo</button>
+        </form>
+        <p id="login-error" class="notice error" hidden></p>
+      </section>
+
+      <section id="admin-view" hidden>
+        <div class="hero">
+          <div><p class="eyebrow">CATÁLOGO PRIVADO</p><h1>Tu estación de publicación.</h1><p>Las canciones publicadas aquí aparecen en NurseLife Music automáticamente.</p></div>
+          <div class="stat"><strong id="track-count">0</strong><span>canciones publicadas</span></div>
+        </div>
+
+        <div class="workspace">
+          <section class="publish-card">
+            <div class="section-heading"><div><p class="eyebrow">NUEVO LANZAMIENTO</p><h2>Subir canción</h2></div><span class="step">1 de 1</span></div>
+            <form id="track-form">
+              <div class="fields two"><label>Título<input id="title" required maxlength="90" placeholder="Nombre de la canción" /></label><label>Artista<input id="artist" required maxlength="90" placeholder="Nombre artístico" /></label></div>
+              <div class="fields two"><label>Álbum <small>opcional</small><input id="album" maxlength="90" placeholder="Nombre del álbum" /></label><label>Duración <small>opcional</small><input id="duration" type="text" inputmode="numeric" placeholder="Ej. 3:42" /></label></div>
+              <div class="files"><label class="file-drop">Portada (JPG, PNG o WEBP)<input id="artwork" type="file" accept="image/jpeg,image/png,image/webp" required /><span id="artwork-name">Elegir imagen</span></label><label class="file-drop">Audio MP3<input id="audio" type="file" accept="audio/mpeg" required /><span id="audio-name">Elegir audio</span></label></div>
+              <label>Letra <small>opcional</small><textarea id="lyrics" rows="5" placeholder="Pega la letra si deseas mostrarla en la app."></textarea></label>
+              <details class="github-settings"><summary>Conexión de GitHub</summary><p>El token solo se mantiene en memoria mientras esta página está abierta. Nunca se guarda ni se publica.</p><label>Token de GitHub<input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." required /></label><div class="fields two"><label>Propietario<input id="github-owner" value="DanielErickEM" required /></label><label>Repositorio<input id="github-repo" value="nurselife-music" required /></label></div></details>
+              <button id="publish-button" class="primary" type="submit">Subir y publicar canción</button>
+              <p id="publish-status" class="notice" hidden></p>
+            </form>
+          </section>
+
+          <aside class="guide-card"><p class="eyebrow">FLUJO AUTOMÁTICO</p><ol><li>Eliges la portada y el MP3.</li><li>El panel crea sus URLs públicas en GitHub.</li><li>Firestore registra título, artista y enlaces.</li><li>NurseLife recibe la canción al instante.</li></ol><p class="tip">Usa únicamente música propia, libre o con autorización. GitHub limita archivos grandes; mantén cada MP3 por debajo de 90 MB.</p></aside>
+        </div>
+
+        <section class="catalog-card"><div class="section-heading"><div><p class="eyebrow">PUBLICADO</p><h2>Catálogo actual</h2></div><input id="catalog-search" type="search" placeholder="Buscar canción o artista" /></div><div id="catalog-list" class="catalog-list"></div><p id="catalog-empty" class="empty">Aún no publicaste canciones.</p></section>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
