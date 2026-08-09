@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
 import { addDoc, collection, deleteDoc, doc, getDoc, getFirestore, onSnapshot, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -12,14 +12,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const elements = Object.fromEntries(['login-view', 'admin-view', 'login-form', 'login-error', 'logout-button', 'track-form', 'publish-button', 'publish-status', 'artwork', 'audio', 'artwork-name', 'audio-name', 'track-count', 'catalog-list', 'catalog-empty', 'catalog-search'].map((id) => [id.replaceAll('-', '_'), document.getElementById(id)]));
+const elements = Object.fromEntries(['login-view', 'admin-view', 'google-login-button', 'login-error', 'logout-button', 'track-form', 'publish-button', 'publish-status', 'artwork', 'audio', 'artwork-name', 'audio-name', 'track-count', 'catalog-list', 'catalog-empty', 'catalog-search'].map((id) => [id.replaceAll('-', '_'), document.getElementById(id)]));
 let tracks = [];
 let unsubscribeCatalog = () => {};
 
-elements.login_form.addEventListener('submit', async (event) => {
-  event.preventDefault();
+elements.google_login_button.addEventListener('click', async () => {
   setNotice(elements.login_error, '');
-  try { await signInWithEmailAndPassword(auth, document.getElementById('email').value.trim(), document.getElementById('password').value); } catch { setNotice(elements.login_error, 'No se pudo iniciar sesión. Verifica tu correo y contraseña.', true); }
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { setNotice(elements.login_error, error?.code === 'auth/unauthorized-domain' ? 'Falta autorizar danielerickem.github.io en Firebase Authentication.' : 'No se pudo iniciar sesión con Google.', true); }
 });
 elements.logout_button.addEventListener('click', () => signOut(auth));
 elements.artwork.addEventListener('change', () => { elements.artwork_name.textContent = elements.artwork.files[0]?.name || 'Elegir imagen'; });
