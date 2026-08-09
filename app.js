@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getDoc, getFirestore, onSnapshot, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDoc, getFirestore, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBgKouORb-ETyl8Feo6DtU7QUuLHogOUvE',
@@ -56,8 +56,12 @@ elements.track_form.addEventListener('submit', async (event) => {
     const artworkUrl = await uploadFile({ owner, repo, token, path: artworkPath, file: artwork, message: `Add artwork: ${document.getElementById('title').value.trim()}` });
     setNotice(elements.publish_status, 'Subiendo MP3 a GitHub...');
     const audioUrl = await uploadFile({ owner, repo, token, path: audioPath, file: audio, message: `Add audio: ${document.getElementById('title').value.trim()}` });
-    setNotice(elements.publish_status, 'Publicando en Firestore...');
-    await addDoc(collection(db, 'catalogTracks'), { title: document.getElementById('title').value.trim(), artist: document.getElementById('artist').value.trim(), album: document.getElementById('album').value.trim() || null, artwork: artworkUrl, audioUrl, duration: parseDuration(document.getElementById('duration').value), lyrics: document.getElementById('lyrics').value.trim() || null, createdAt: serverTimestamp() });
+    setNotice(elements.publish_status, 'Creando relaciones en Firestore...');
+    const artist = document.getElementById('artist').value.trim(); const album = document.getElementById('album').value.trim(); const artistId = createId(artist); const albumId = album ? `${artistId}--${createId(album)}` : null;
+    await setDoc(doc(db, 'artists', artistId), { name: artist, nameLower: artist.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true });
+    if (albumId) await setDoc(doc(db, 'albums', albumId), { title: album, titleLower: album.toLowerCase(), artistId, artistName: artist, artwork: artworkUrl, updatedAt: serverTimestamp() }, { merge: true });
+    setNotice(elements.publish_status, 'Publicando canción en Firestore...');
+    await addDoc(collection(db, 'catalogTracks'), { title: document.getElementById('title').value.trim(), artist, artistId, album: album || null, albumId, artwork: artworkUrl, audioUrl, duration: parseDuration(document.getElementById('duration').value), lyrics: document.getElementById('lyrics').value.trim() || null, createdAt: serverTimestamp() });
     elements.track_form.reset(); githubTokenInput.value = localStorage.getItem(tokenStorageKey) || sessionStorage.getItem(tokenStorageKey) || ''; rememberTokenInput.checked = Boolean(localStorage.getItem(tokenStorageKey)); document.getElementById('github-owner').value = 'DanielErickEM'; document.getElementById('github-repo').value = 'nurselife-music'; elements.artwork_name.textContent = 'Elegir imagen'; elements.audio_name.textContent = 'Elegir audio'; setNotice(elements.publish_status, 'Canción publicada. Ya está disponible en NurseLife Music.');
   } catch (error) { setNotice(elements.publish_status, error instanceof Error ? error.message : 'No se pudo publicar la canción.', true); } finally { setPublishing(false); }
 });
@@ -70,6 +74,7 @@ async function uploadFile({ owner, repo, token, path, file, message }) {
 }
 function arrayBufferToBase64(buffer) { let binary = ''; for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte); return btoa(binary); }
 function safeName(name) { return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9._-]+/g, '-'); }
+function createId(value) { return safeName(value).replace(/\.[a-z0-9]+$/, '').replace(/^-+|-+$/g, '').slice(0, 80) || `item-${Date.now()}`; }
 function parseDuration(value) { const parts = value.trim().split(':').map(Number); if (parts.length === 2 && parts.every(Number.isFinite)) return parts[0] * 60 + parts[1]; const seconds = Number(value); return Number.isFinite(seconds) && seconds > 0 ? seconds : 0; }
 function showLogin() { elements.login_view.hidden = false; elements.admin_view.hidden = true; elements.logout_button.hidden = true; }
 function showAdmin() { elements.login_view.hidden = true; elements.admin_view.hidden = false; elements.logout_button.hidden = false; }
