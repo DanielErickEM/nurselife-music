@@ -15,6 +15,16 @@ const db = getFirestore(app);
 const elements = Object.fromEntries(['login-view', 'admin-view', 'google-login-button', 'login-error', 'logout-button', 'track-form', 'publish-button', 'publish-status', 'artwork', 'audio', 'artwork-name', 'audio-name', 'track-count', 'catalog-list', 'catalog-empty', 'catalog-search'].map((id) => [id.replaceAll('-', '_'), document.getElementById(id)]));
 let tracks = [];
 let unsubscribeCatalog = () => {};
+const githubTokenInput = document.getElementById('github-token');
+const rememberTokenInput = document.getElementById('remember-token');
+const forgetTokenButton = document.getElementById('forget-token');
+const tokenStorageKey = 'nurselife-github-token';
+githubTokenInput.value = localStorage.getItem(tokenStorageKey) || sessionStorage.getItem(tokenStorageKey) || '';
+rememberTokenInput.checked = Boolean(localStorage.getItem(tokenStorageKey));
+function saveToken() { sessionStorage.setItem(tokenStorageKey, githubTokenInput.value); if (rememberTokenInput.checked) localStorage.setItem(tokenStorageKey, githubTokenInput.value); else localStorage.removeItem(tokenStorageKey); }
+githubTokenInput.addEventListener('input', saveToken);
+rememberTokenInput.addEventListener('change', saveToken);
+forgetTokenButton.addEventListener('click', () => { localStorage.removeItem(tokenStorageKey); sessionStorage.removeItem(tokenStorageKey); githubTokenInput.value = ''; rememberTokenInput.checked = false; });
 
 elements.google_login_button.addEventListener('click', async () => {
   setNotice(elements.login_error, '');
@@ -48,7 +58,7 @@ elements.track_form.addEventListener('submit', async (event) => {
     const audioUrl = await uploadFile({ owner, repo, token, path: audioPath, file: audio, message: `Add audio: ${document.getElementById('title').value.trim()}` });
     setNotice(elements.publish_status, 'Publicando en Firestore...');
     await addDoc(collection(db, 'catalogTracks'), { title: document.getElementById('title').value.trim(), artist: document.getElementById('artist').value.trim(), album: document.getElementById('album').value.trim() || null, artwork: artworkUrl, audioUrl, duration: parseDuration(document.getElementById('duration').value), lyrics: document.getElementById('lyrics').value.trim() || null, createdAt: serverTimestamp() });
-    elements.track_form.reset(); elements.artwork_name.textContent = 'Elegir imagen'; elements.audio_name.textContent = 'Elegir audio'; setNotice(elements.publish_status, 'Canción publicada. Ya está disponible en NurseLife Music.');
+    elements.track_form.reset(); githubTokenInput.value = localStorage.getItem(tokenStorageKey) || sessionStorage.getItem(tokenStorageKey) || ''; rememberTokenInput.checked = Boolean(localStorage.getItem(tokenStorageKey)); document.getElementById('github-owner').value = 'DanielErickEM'; document.getElementById('github-repo').value = 'nurselife-music'; elements.artwork_name.textContent = 'Elegir imagen'; elements.audio_name.textContent = 'Elegir audio'; setNotice(elements.publish_status, 'Canción publicada. Ya está disponible en NurseLife Music.');
   } catch (error) { setNotice(elements.publish_status, error instanceof Error ? error.message : 'No se pudo publicar la canción.', true); } finally { setPublishing(false); }
 });
 
