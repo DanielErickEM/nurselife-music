@@ -29,12 +29,17 @@
           <div class="stat"><strong id="track-count">0</strong><span>canciones publicadas</span></div>
         </div>
 
+        <section class="entity-workspace">
+          <article class="entity-card"><p class="eyebrow">PASO 1</p><h2>Registrar artista</h2><form id="artist-form"><label>Nombre del artista<input id="artist-name" required maxlength="90" placeholder="Ej. Marc Seguí" /></label><button class="secondary" type="submit">Guardar artista</button><p id="artist-status" class="notice" hidden></p></form></article>
+          <article class="entity-card"><p class="eyebrow">PASO 2</p><h2>Registrar álbum</h2><form id="album-form"><label>Artista<select id="album-artist" required></select></label><label>Nombre del álbum<input id="album-title" required maxlength="90" placeholder="Ej. Tiroteo (Remix)" /></label><button class="secondary" type="submit">Guardar álbum</button><p id="album-status" class="notice" hidden></p></form></article>
+        </section>
+
         <div class="workspace">
           <section class="publish-card">
             <div class="section-heading"><div><p class="eyebrow">NUEVO LANZAMIENTO</p><h2>Subir canción</h2></div><span class="step">1 de 1</span></div>
             <form id="track-form">
-              <div class="fields two"><label>Título de canción<input id="title" required maxlength="90" placeholder="Nombre de la canción" /></label><label>Artista<input id="artist" required maxlength="90" placeholder="Nombre artístico" /><small>Se crea o reutiliza como artista.</small></label></div>
-              <div class="fields two"><label>Álbum <small>opcional</small><input id="album" maxlength="90" placeholder="Nombre del álbum" /><small>Se relaciona automáticamente con este artista.</small></label><label>Duración <small>opcional</small><input id="duration" type="text" inputmode="numeric" placeholder="Ej. 3:42" /></label></div>
+              <div class="fields two"><label>Título de canción<input id="title" required maxlength="90" placeholder="Nombre de la canción" /></label><label>Artista<select id="song-artist" required></select></label></div>
+              <div class="fields two"><label>Álbum <small>opcional</small><select id="song-album"></select></label><label>Duración <small>opcional</small><input id="duration" type="text" inputmode="numeric" placeholder="Ej. 3:42" /></label></div>
               <div class="files"><label class="file-drop">Portada (JPG, PNG o WEBP)<input id="artwork" type="file" accept="image/jpeg,image/png,image/webp" required /><span id="artwork-name">Elegir imagen</span></label><label class="file-drop">Audio MP3<input id="audio" type="file" accept="audio/mpeg" required /><span id="audio-name">Elegir audio</span></label></div>
               <label>Letra <small>opcional</small><textarea id="lyrics" rows="5" placeholder="Pega la letra si deseas mostrarla en la app."></textarea></label>
               <details class="github-settings"><summary>Conexión de GitHub</summary><p>El token nunca se publica. Puedes recordarlo solo en esta PC si es de uso personal.</p><label>Token de GitHub<input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." required /></label><div class="token-options"><label class="remember-token"><input id="remember-token" type="checkbox" /> Recordar token en esta PC</label><button id="forget-token" class="forget-token" type="button">Olvidar token</button></div><div class="fields two"><label>Propietario<input id="github-owner" value="DanielErickEM" required /></label><label>Repositorio<input id="github-repo" value="nurselife-music" required /></label></div></details>
@@ -43,7 +48,7 @@
             </form>
           </section>
 
-          <aside class="guide-card"><p class="eyebrow">FLUJO AUTOMÁTICO</p><ol><li>Eliges la portada y el MP3.</li><li>El panel crea sus URLs públicas en GitHub.</li><li>Firestore registra título, artista y enlaces.</li><li>NurseLife recibe la canción al instante.</li></ol><p class="tip">Usa únicamente música propia, libre o con autorización. GitHub limita archivos grandes; mantén cada MP3 por debajo de 90 MB.</p></aside>
+          <aside class="guide-card"><p class="eyebrow">FLUJO DEL CATÁLOGO</p><ol><li>Registra el artista.</li><li>Registra el álbum y selecciona su artista.</li><li>Selecciona ambos al subir una canción.</li><li>El panel guarda archivos y relaciones.</li></ol><p class="tip">Usa únicamente música propia, libre o con autorización. GitHub limita archivos grandes; mantén cada MP3 por debajo de 90 MB.</p></aside>
         </div>
 
         <section class="catalog-card"><div class="section-heading"><div><p class="eyebrow">PUBLICADO</p><h2>Catálogo actual</h2></div><input id="catalog-search" type="search" placeholder="Buscar canción o artista" /></div><div id="catalog-list" class="catalog-list"></div><p id="catalog-empty" class="empty">Aún no publicaste canciones.</p></section>

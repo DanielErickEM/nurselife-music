@@ -12,9 +12,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const elements = Object.fromEntries(['login-view', 'admin-view', 'google-login-button', 'login-error', 'logout-button', 'track-form', 'publish-button', 'publish-status', 'artwork', 'audio', 'artwork-name', 'audio-name', 'track-count', 'catalog-list', 'catalog-empty', 'catalog-search'].map((id) => [id.replaceAll('-', '_'), document.getElementById(id)]));
+const elements = Object.fromEntries(['login-view', 'admin-view', 'google-login-button', 'login-error', 'logout-button', 'artist-form', 'artist-name', 'artist-status', 'album-form', 'album-artist', 'album-title', 'album-status', 'song-artist', 'song-album', 'track-form', 'publish-button', 'publish-status', 'artwork', 'audio', 'artwork-name', 'audio-name', 'track-count', 'catalog-list', 'catalog-empty', 'catalog-search'].map((id) => [id.replaceAll('-', '_'), document.getElementById(id)]));
 let tracks = [];
+let artists = [];
+let albums = [];
 let unsubscribeCatalog = () => {};
+let unsubscribeArtists = () => {};
+let unsubscribeAlbums = () => {};
 const githubTokenInput = document.getElementById('github-token');
 const rememberTokenInput = document.getElementById('remember-token');
 const forgetTokenButton = document.getElementById('forget-token');
@@ -34,14 +38,30 @@ elements.logout_button.addEventListener('click', () => signOut(auth));
 elements.artwork.addEventListener('change', () => { elements.artwork_name.textContent = elements.artwork.files[0]?.name || 'Elegir imagen'; });
 elements.audio.addEventListener('change', () => { elements.audio_name.textContent = elements.audio.files[0]?.name || 'Elegir audio'; });
 elements.catalog_search.addEventListener('input', renderCatalog);
+elements.song_artist.addEventListener('change', renderAlbumOptions);
+elements.artist_form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const name = elements.artist_name.value.trim(); const id = createId(name);
+  await setDoc(doc(db, 'artists', id), { name, nameLower: name.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true });
+  elements.artist_form.reset(); setNotice(elements.artist_status, 'Artista guardado. Ya puedes seleccionarlo al registrar un álbum.');
+});
+elements.album_form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const artist = artists.find((item) => item.id === elements.album_artist.value); const title = elements.album_title.value.trim();
+  if (!artist) return setNotice(elements.album_status, 'Primero selecciona un artista.', true);
+  await setDoc(doc(db, 'albums', `${artist.id}--${createId(title)}`), { title, titleLower: title.toLowerCase(), artistId: artist.id, artistName: artist.name, updatedAt: serverTimestamp() }, { merge: true });
+  elements.album_form.reset(); setNotice(elements.album_status, 'Álbum guardado. Ya puedes seleccionarlo al publicar una canción.');
+});
 
 onAuthStateChanged(auth, async (user) => {
-  unsubscribeCatalog();
+  unsubscribeCatalog(); unsubscribeArtists(); unsubscribeAlbums();
   if (!user) return showLogin();
   const admin = await getDoc(doc(db, 'adminUsers', user.uid));
   if (!admin.exists()) { await signOut(auth); setNotice(elements.login_error, 'Esta cuenta no tiene permiso para administrar el catálogo.', true); return; }
   showAdmin();
   unsubscribeCatalog = onSnapshot(query(collection(db, 'catalogTracks'), orderBy('createdAt', 'desc')), (snapshot) => { tracks = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })); renderCatalog(); });
+  unsubscribeArtists = onSnapshot(collection(db, 'artists'), (snapshot) => { artists = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).sort((a, b) => a.name.localeCompare(b.name)); renderArtistOptions(); });
+  unsubscribeAlbums = onSnapshot(collection(db, 'albums'), (snapshot) => { albums = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).sort((a, b) => a.title.localeCompare(b.title)); renderAlbumOptions(); });
 });
 
 elements.track_form.addEventListener('submit', async (event) => {
@@ -57,9 +77,11 @@ elements.track_form.addEventListener('submit', async (event) => {
     setNotice(elements.publish_status, 'Subiendo MP3 a GitHub...');
     const audioUrl = await uploadFile({ owner, repo, token, path: audioPath, file: audio, message: `Add audio: ${document.getElementById('title').value.trim()}` });
     setNotice(elements.publish_status, 'Creando relaciones en Firestore...');
-    const artist = document.getElementById('artist').value.trim(); const album = document.getElementById('album').value.trim(); const artistId = createId(artist); const albumId = album ? `${artistId}--${createId(album)}` : null;
-    await setDoc(doc(db, 'artists', artistId), { name: artist, nameLower: artist.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true });
-    if (albumId) await setDoc(doc(db, 'albums', albumId), { title: album, titleLower: album.toLowerCase(), artistId, artistName: artist, artwork: artworkUrl, updatedAt: serverTimestamp() }, { merge: true });
+    const artistEntity = artists.find((item) => item.id === elements.song_artist.value); const albumEntity = albums.find((item) => item.id === elements.song_album.value);
+    if (!artistEntity) throw new Error('Selecciona un artista registrado.');
+    const artist = artistEntity.name; const artistId = artistEntity.id; const album = albumEntity?.title || null; const albumId = albumEntity?.id || null;
+    if (albumEntity && albumEntity.artistId !== artistId) throw new Error('El álbum seleccionado no pertenece al artista.');
+    if (albumEntity && !albumEntity.artwork) await setDoc(doc(db, 'albums', albumId), { artwork: artworkUrl, updatedAt: serverTimestamp() }, { merge: true });
     setNotice(elements.publish_status, 'Publicando canción en Firestore...');
     await addDoc(collection(db, 'catalogTracks'), { title: document.getElementById('title').value.trim(), artist, artistId, album: album || null, albumId, artwork: artworkUrl, audioUrl, duration: parseDuration(document.getElementById('duration').value), lyrics: document.getElementById('lyrics').value.trim() || null, createdAt: serverTimestamp() });
     elements.track_form.reset(); githubTokenInput.value = localStorage.getItem(tokenStorageKey) || sessionStorage.getItem(tokenStorageKey) || ''; rememberTokenInput.checked = Boolean(localStorage.getItem(tokenStorageKey)); document.getElementById('github-owner').value = 'DanielErickEM'; document.getElementById('github-repo').value = 'nurselife-music'; elements.artwork_name.textContent = 'Elegir imagen'; elements.audio_name.textContent = 'Elegir audio'; setNotice(elements.publish_status, 'Canción publicada. Ya está disponible en NurseLife Music.');
@@ -80,6 +102,8 @@ function showLogin() { elements.login_view.hidden = false; elements.admin_view.h
 function showAdmin() { elements.login_view.hidden = true; elements.admin_view.hidden = false; elements.logout_button.hidden = false; }
 function setNotice(element, message, isError = false) { element.textContent = message; element.hidden = !message; element.classList.toggle('error', isError); }
 function setPublishing(publishing, message = '') { elements.publish_button.disabled = publishing; elements.publish_button.textContent = publishing ? 'Publicando...' : 'Subir y publicar canción'; if (message) setNotice(elements.publish_status, message); }
+function renderArtistOptions() { const selectedSongArtist = elements.song_artist.value; const selectedAlbumArtist = elements.album_artist.value; const options = artists.map((artist) => `<option value="${artist.id}">${escapeHtml(artist.name)}</option>`).join(''); elements.song_artist.innerHTML = `<option value="">Selecciona un artista</option>${options}`; elements.album_artist.innerHTML = `<option value="">Selecciona un artista</option>${options}`; elements.song_artist.value = artists.some((artist) => artist.id === selectedSongArtist) ? selectedSongArtist : ''; elements.album_artist.value = artists.some((artist) => artist.id === selectedAlbumArtist) ? selectedAlbumArtist : ''; renderAlbumOptions(); }
+function renderAlbumOptions() { const selected = elements.song_album.value; const available = albums.filter((album) => album.artistId === elements.song_artist.value); elements.song_album.innerHTML = `<option value="">Sin álbum</option>${available.map((album) => `<option value="${album.id}">${escapeHtml(album.title)}</option>`).join('')}`; elements.song_album.value = available.some((album) => album.id === selected) ? selected : ''; }
 function renderCatalog() { const term = elements.catalog_search.value.trim().toLowerCase(); const visible = tracks.filter((track) => `${track.title} ${track.artist}`.toLowerCase().includes(term)); elements.track_count.textContent = tracks.length; elements.catalog_empty.hidden = visible.length > 0; elements.catalog_list.innerHTML = visible.map((track) => `<article class="track"><img src="${escapeAttribute(track.artwork)}" alt=""><div><strong>${escapeHtml(track.title)}</strong><span>${escapeHtml(track.artist)}${track.album ? ` · ${escapeHtml(track.album)}` : ''}</span></div><button class="delete" data-id="${track.id}">Eliminar</button></article>`).join(''); document.querySelectorAll('.delete').forEach((button) => button.addEventListener('click', () => removeTrack(button.dataset.id))); }
 async function removeTrack(id) { if (!confirm('¿Eliminar esta canción del catálogo? Los archivos seguirán en GitHub.')) return; await deleteDoc(doc(db, 'catalogTracks', id)); }
 function escapeHtml(value = '') { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
