@@ -41,16 +41,11 @@ elements.catalog_search.addEventListener('input', renderCatalog);
 elements.song_artist.addEventListener('change', renderAlbumOptions);
 elements.artist_form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const name = elements.artist_name.value.trim(); const id = createId(name);
-  await setDoc(doc(db, 'artists', id), { name, nameLower: name.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true });
-  elements.artist_form.reset(); setNotice(elements.artist_status, 'Artista guardado. Ya puedes seleccionarlo al registrar un álbum.');
+  try { const name = elements.artist_name.value.trim(); const id = createId(name); await setDoc(doc(db, 'artists', id), { name, nameLower: name.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true }); elements.artist_form.reset(); setNotice(elements.artist_status, 'Artista guardado. Ya puedes seleccionarlo al registrar un álbum.'); } catch (error) { setNotice(elements.artist_status, error instanceof Error ? error.message : 'No se pudo guardar el artista.', true); }
 });
 elements.album_form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const artist = artists.find((item) => item.id === elements.album_artist.value); const title = elements.album_title.value.trim();
-  if (!artist) return setNotice(elements.album_status, 'Primero selecciona un artista.', true);
-  await setDoc(doc(db, 'albums', `${artist.id}--${createId(title)}`), { title, titleLower: title.toLowerCase(), artistId: artist.id, artistName: artist.name, updatedAt: serverTimestamp() }, { merge: true });
-  elements.album_form.reset(); setNotice(elements.album_status, 'Álbum guardado. Ya puedes seleccionarlo al publicar una canción.');
+  try { const artist = artists.find((item) => item.id === elements.album_artist.value); const title = elements.album_title.value.trim(); if (!artist) return setNotice(elements.album_status, 'Primero selecciona un artista.', true); await setDoc(doc(db, 'albums', `${artist.id}--${createId(title)}`), { title, titleLower: title.toLowerCase(), artistId: artist.id, artistName: artist.name, updatedAt: serverTimestamp() }, { merge: true }); elements.album_form.reset(); setNotice(elements.album_status, 'Álbum guardado. Ya puedes seleccionarlo al publicar una canción.'); } catch (error) { setNotice(elements.album_status, error instanceof Error ? error.message : 'No se pudo guardar el álbum.', true); }
 });
 
 onAuthStateChanged(auth, async (user) => {
